@@ -9,10 +9,31 @@ That is because until now, there was no way to enforce a stable format the agent
 
 Concision solves this by acting as a linter for abstract code templates. You define the template, AI gets it wrong, concision will tell the AI why it's wrong and how it can be solved. **Nothing passes until it matches your specifications.**
 
+## Example
+```
+---
+paths: **/*.ts
+---
+~import**
+
+export function *(*) { | export async function *(*) {
+  **5
+}
+```
+- Covers all .ts files
+- Allows optional (~) import lines, as many as wanted (\*\*)
+- Requires the export of a regular OR (|) async function
+- Allows any function name (\*) and any parameters, if any (\*)
+- Allows any number of lines with a maximum of 5 variables (**5) to reign in cognitive load
+
+
 ## Syntax
 `~` this line optional (wrap a code block for multi-line optionality)
+
 `*` allow any text until the next concrete symbol
-`**` allow any number of lines with that line's rules (end of line only)
+
+`**` allow any number of lines with that line's rules (end of line only)<br>
+
 TODO: Add remaining (it's 37C rn i'm dying)
 
 ## How
