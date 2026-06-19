@@ -1,9 +1,10 @@
 {
   "name": "@nicerice/concision",
-  "version": "0.1.0",
+  "description": "Linting for your code architecture.",
+  "version": "0.0.1",
   "type": "module",
   "bin": {
-    "deslop": "./index.ts"
+    "concision": "./index.ts"
   },
   "main": "./index.ts",
   "exports": {
@@ -18,6 +19,7 @@
     "README.md"
   ],
   "scripts": {
+    "check": "bun ./index.ts check",
     "test": "bun test",
     "start": "bun ./index.ts"
   },

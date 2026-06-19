@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "deslop",
+      "name": "@nicerice/concision",
       "dependencies": {
         "peggy": "^5.1.0",
       },
