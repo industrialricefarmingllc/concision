@@ -26,9 +26,8 @@ export function *(*) { | export async function *(*) {
 - Allows any function name (\*) and any parameters, if any (\*)
 - Allows any number of lines with a maximum of 5 variables (**5) to reign in cognitive load
 
-
 ## Syntax
-`~` this line optional (wrap a code block for multi-line optionality)
+`~` marks this line optional (wrap a code block for multi-line optionality)
 
 `*` allow any text until the next concrete symbol
 
@@ -36,13 +35,22 @@ export function *(*) { | export async function *(*) {
 
 TODO: Add remaining (it's 37C rn i'm dying)
 
-## How
+## Install
 
 Run it with:
 
 ```bash
 bun x @nicerice/concision
-npm exec @nicerice/concision
-pnpm dlx @nicerice/concision
-concision check
+```
+
+or install it globally:
+
+```bash
+bun i -g @nicerice/concision && concision check
+```
+
+## OpenCode Plugin
+
+```bash
+opencode plugin @nicerice/concision
 ```
