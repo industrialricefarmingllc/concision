@@ -1,0 +1,31 @@
+{
+  "name": "@nicerice/concision",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "deslop": "./index.ts"
+  },
+  "main": "./index.ts",
+  "exports": {
+    ".": {
+      "bun": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "start": "bun ./index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "peggy": "^5.1.0"
+  }
+}
