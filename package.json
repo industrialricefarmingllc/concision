@@ -24,10 +24,10 @@
     "start": "bun ./index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5"
+    "@types/bun": "latest"
   },
   "dependencies": {
-    "peggy": "^5.1.0"
+    "peggy": "^5.1.0",
+    "typescript": "^5"
   }
 }

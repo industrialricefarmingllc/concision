@@ -5,10 +5,10 @@
       "name": "@nicerice/concision",
       "dependencies": {
         "peggy": "^5.1.0",
+        "typescript": "^5",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "typescript": "^5",
       },
     },
   },
