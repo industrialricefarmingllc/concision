@@ -1,4 +1,3 @@
-import { hasBoundedRepeat } from "../../domain/language/has-bounded-repeat"
 import type { TemplateDocument } from "../../domain/language/types"
 import type { VariableCounter } from "../../domain/language/variable-counter"
 import { matchTemplate } from "../../domain/matching/match-template"
@@ -14,19 +13,13 @@ export function validateOneFile(file: TextFile, templates: TemplateDocument[], v
     path: file.path,
     valid,
     templates: templates.map((template) => template.path),
-    errors: valid ? [] : ["Template match failed"],
-    warnings: unique([...boundedRepeatWarnings(file, templates, variableCounter), ...results.flatMap((result) => result.warnings)]),
+    errors: valid ? [] : results.flatMap((result) => result.errors),
+    warnings: unique(results.flatMap((result) => result.warnings)),
   }
 }
 
 function unmatched(file: TextFile): FileValidation {
   return { path: file.path, valid: false, templates: [], errors: ["No template matched file"], warnings: [] }
-}
-
-function boundedRepeatWarnings(file: TextFile, templates: TemplateDocument[], variableCounter?: VariableCounter): string[] {
-  if (!templates.some((template) => hasBoundedRepeat(template.nodes))) return []
-  if (variableCounter?.({ filePath: file.path, content: "" }).supported) return []
-  return [`No variable counter available for ${file.path}; skipped **N bounds`]
 }
 
 function unique(values: string[]): string[] {

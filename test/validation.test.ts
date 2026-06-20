@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { validateFiles } from "../src/application/validation/validate-files"
 import { countTypeScriptVariables } from "../src/infrastructure/language/typescript"
+import { ParallelValidationController } from "../src/infrastructure/parallel/parallel-validation-controller"
 import { parseTemplate } from "../src/infrastructure/parser/parse-template"
 
 describe("project validation", () => {
@@ -29,7 +30,22 @@ describe("project validation", () => {
     })
 
     expect(report.valid).toBe(true)
-    expect(report.warnings).toEqual(["No variable counter available for /sample.txt; skipped **N bounds"])
+    expect(report.warnings).toEqual(["A template specified variable counting, but none was supported for the .txt file extension."])
+  })
+
+  test("parallel validation matches synchronous validation", async () => {
+    const templates = await readTemplates()
+    const files = await readFixtures()
+    const syncReport = validateFiles({ parseTemplate, variableCounter: countTypeScriptVariables, templates, files })
+    const validator = new ParallelValidationController({ workers: 2 })
+    const parsed = await validator.parseTemplates(templates)
+    const parallelReport = await validator.validateFilePaths(
+      parsed,
+      process.cwd(),
+      files.map((file) => file.path),
+    )
+
+    expect(parallelReport).toEqual(syncReport)
   })
 })
 

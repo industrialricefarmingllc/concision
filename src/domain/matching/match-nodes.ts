@@ -5,7 +5,6 @@ import { lineMatches } from "./line-matches"
 export type MatchContext = {
   filePath: string
   variableCounter?: VariableCounter
-  warn: (warning: string) => void
 }
 
 export function matchNodes(nodes: TemplateNode[], lines: string[], start: number, context: MatchContext): number[] {
@@ -45,8 +44,6 @@ function withinBound(node: LineNode, lines: string[], context: MatchContext): bo
 
   const result = context.variableCounter?.({ filePath: context.filePath, content: lines.join("\n") }) ?? { supported: false }
   if (result.supported) return result.count <= max
-
-  context.warn(`No variable counter available for ${context.filePath}; skipped **N bounds`)
   return true
 }
 

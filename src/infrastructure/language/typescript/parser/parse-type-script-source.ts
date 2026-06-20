@@ -1,4 +1,4 @@
-import ts from "typescript"
+import * as ts from "typescript"
 import type { VariableCounterInput } from "../../../../domain/language/variable-counter"
 import { scriptKind } from "./script-kind"
 

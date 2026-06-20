@@ -1,4 +1,4 @@
-import ts from "typescript"
+import * as ts from "typescript"
 
 export function scriptKind(path: string): ts.ScriptKind {
   if (path.endsWith(".tsx") || path.endsWith(".jsx")) return ts.ScriptKind.TSX

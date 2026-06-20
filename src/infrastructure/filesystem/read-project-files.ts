@@ -1,9 +1,15 @@
 import type { TextFile } from "../../application/validation/types"
 
 export async function readProjectFiles(root: string, patterns: string[]): Promise<TextFile[]> {
-  const files = await Promise.all(patterns.map((pattern) => readGlob(root, cleanPattern(pattern), isProjectFile)))
+  const paths = await readProjectFilePaths(root, patterns)
 
-  return uniqueFiles(files.flat())
+  return Promise.all(paths.map((path) => readTextFile(root, path.slice(1))))
+}
+
+export async function readProjectFilePaths(root: string, patterns: string[]): Promise<string[]> {
+  const paths = await Promise.all(patterns.map((pattern) => readGlobPaths(root, cleanPattern(pattern), isProjectFile)))
+
+  return uniquePaths(paths.flat().map((path) => `/${path}`))
 }
 
 export async function readTemplateFiles(root: string): Promise<TextFile[]> {
@@ -11,10 +17,16 @@ export async function readTemplateFiles(root: string): Promise<TextFile[]> {
 }
 
 async function readGlob(root: string, pattern: string, keep: (path: string) => boolean): Promise<TextFile[]> {
+  const paths = await readGlobPaths(root, pattern, keep)
+
+  return Promise.all(paths.map((path) => readTextFile(root, path)))
+}
+
+async function readGlobPaths(root: string, pattern: string, keep: (path: string) => boolean): Promise<string[]> {
   const glob = new Bun.Glob(pattern)
   const paths = await Array.fromAsync(glob.scan({ cwd: root, dot: true, onlyFiles: true }))
 
-  return Promise.all(paths.filter(keep).map((path) => readTextFile(root, path)))
+  return paths.filter(keep)
 }
 
 async function readTextFile(root: string, path: string): Promise<TextFile> {
@@ -29,6 +41,6 @@ function cleanPattern(pattern: string): string {
   return pattern.replace(/^\//, "")
 }
 
-function uniqueFiles(files: TextFile[]): TextFile[] {
-  return [...new Map(files.map((file) => [file.path, file])).values()]
+function uniquePaths(paths: string[]): string[] {
+  return [...new Set(paths)]
 }
