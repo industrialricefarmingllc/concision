@@ -40,6 +40,7 @@ export type WildcardPart = {
 
 export type RepeatRule = {
   max: number | null
+  index: number
 }
 
 export type Constraint = ExcludeConstraint | RequireConstraint

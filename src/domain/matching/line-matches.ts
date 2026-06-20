@@ -10,6 +10,21 @@ export function lineMatches(pattern: LinePattern, line: string): boolean {
   return textMatches(matchParts(pattern), line) && constraintsPass(pattern, line)
 }
 
+export function inlineRepeatEndings(pattern: LinePattern, lines: string[], position: number): number[] {
+  const endings: number[] = []
+
+  for (let end = position + 1; end <= lines.length; end += 1) {
+    const content = lines.slice(position, end).join("\n")
+    if (textMatchesInlineRepeat(pattern, content) && constraintsPass(pattern, content)) endings.push(end)
+  }
+
+  return endings
+}
+
+export function hasInlineRepeat(pattern: LinePattern): boolean {
+  return pattern.repeat !== null && pattern.repeat.index < pattern.parts.length
+}
+
 export function explainLineMismatch(pattern: LinePattern, line: string): LineMismatch {
   const expected = formatLinePattern(pattern)
 
@@ -47,14 +62,20 @@ export function explainLineMismatch(pattern: LinePattern, line: string): LineMis
 }
 
 export function formatLinePattern(pattern: LinePattern): string {
-  const body = pattern.parts.map(formatPart).join("")
-  const repeated = pattern.repeat ? `${body}**${pattern.repeat.max ?? ""}` : body
-  return `${repeated}${pattern.constraints.map(formatConstraint).join("")}`.trim() || "<blank line>"
+  return `${formatParts(pattern)}${pattern.constraints.map(formatConstraint).join("")}`.trim() || "<blank line>"
 }
 
 function matchParts(pattern: LinePattern): PatternPart[] {
   if (!pattern.repeat) return pattern.parts
-  return [...pattern.parts, { kind: "wildcard" }]
+  return [...pattern.parts.slice(0, pattern.repeat.index), { kind: "wildcard" }, ...pattern.parts.slice(pattern.repeat.index)]
+}
+
+function textMatchesInlineRepeat(pattern: LinePattern, content: string): boolean {
+  if (!pattern.repeat) return false
+
+  const before = pattern.parts.slice(0, pattern.repeat.index)
+  const after = pattern.parts.slice(pattern.repeat.index)
+  return new RegExp(`^${before.map(regexPart).join("")}[\\s\\S]*${after.map(regexPart).join("")}$`).test(content)
 }
 
 function textMatches(parts: PatternPart[], line: string): boolean {
@@ -80,6 +101,19 @@ function regexPart(part: PatternPart): string {
 function formatPart(part: PatternPart): string {
   if (part.kind === "wildcard") return "*"
   return part.value.trim()
+}
+
+function formatParts(pattern: LinePattern): string {
+  if (!pattern.repeat) return pattern.parts.map(formatPartPreservingWhitespace).join("")
+
+  const before = pattern.parts.slice(0, pattern.repeat.index).map(formatPart).join("")
+  const after = pattern.parts.slice(pattern.repeat.index).map(formatPart).join("")
+  return `${before}**${pattern.repeat.max ?? ""}${after}`
+}
+
+function formatPartPreservingWhitespace(part: PatternPart): string {
+  if (part.kind === "wildcard") return "*"
+  return part.value
 }
 
 function formatConstraint(pattern: LinePattern["constraints"][number]): string {

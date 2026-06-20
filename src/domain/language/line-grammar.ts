@@ -1,7 +1,8 @@
 export const lineGrammar = String.raw`
 Start
   = parts:Part* constraints:Constraint* {
-      const repeat = parts.find((part) => part.kind === "repeat") ?? null
+      const repeatPart = parts.find((part) => part.kind === "repeat") ?? null
+      const repeat = repeatPart ? { max: repeatPart.max, index: parts.slice(0, parts.indexOf(repeatPart)).filter((part) => part.kind !== "repeat").length } : null
       const cleanParts = parts.filter((part) => part.kind !== "repeat")
       return { parts: cleanParts, repeat, constraints }
     }

@@ -73,4 +73,22 @@ describe("matchTemplate", () => {
     expect(result.errors[0]).toContain("Expected: const module = *Module.getInstance(*)")
     expect(result.sourceLine).toBe(2)
   })
+
+  test("allows inline repeat patterns to span multiple source lines", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\ncall(**)", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "call(\n  first,\n  second\n)" })
+
+    expect(result.valid).toBe(true)
+  })
+
+  test("applies inline repeat exclusions across consumed source lines", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\ncall(**)!forbidden", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "call(\n  forbidden\n)" })
+
+    expect(result.valid).toBe(false)
+  })
 })

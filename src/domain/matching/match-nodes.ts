@@ -1,6 +1,6 @@
 import type { VariableCounter } from "../language/variable-counter"
 import type { LineNode, TemplateNode } from "../language/types"
-import { lineMatches } from "./line-matches"
+import { hasInlineRepeat, inlineRepeatEndings, lineMatches } from "./line-matches"
 
 export type MatchContext = {
   filePath: string
@@ -34,9 +34,14 @@ function nodeStartsAt(node: TemplateNode | undefined, lines: string[], position:
 }
 
 function matchLine(node: LineNode, lines: string[], position: number, context: MatchContext): number[] {
+  if (hasInlineRepeat(node.pattern)) return inlineRepeatPositions(node, lines, position, context)
   if (node.pattern.repeat) return repeatPositions(node, lines, position, context)
   if (lineMatches(node.pattern, lines[position] ?? "")) return [position + 1]
   return []
+}
+
+function inlineRepeatPositions(node: LineNode, lines: string[], position: number, context: MatchContext): number[] {
+  return inlineRepeatEndings(node.pattern, lines, position).filter((end) => withinBound(node, lines.slice(position, end), context))
 }
 
 function repeatPositions(node: LineNode, lines: string[], position: number, context: MatchContext): number[] {
