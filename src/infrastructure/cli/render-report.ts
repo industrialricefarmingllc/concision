@@ -33,6 +33,7 @@ export function renderReportWithOptions(report: ValidationReport, options: { sho
     if (omittedFailed > 0) {
       lines.push("", `  Omitted ${omittedFailed} additional failure${omittedFailed === 1 ? "" : "s"}. Use --show-all to display all.`)
     }
+    lines.push("", `  Re-run specific files with \`concision check [file-path]\`.`)
   }
 
   if (report.warnings.length > 0) {
