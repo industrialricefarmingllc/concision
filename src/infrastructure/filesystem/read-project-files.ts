@@ -1,4 +1,5 @@
 import type { TextFile } from "../../application/validation/types"
+import { pathMatches } from "../../application/validation/path-matches"
 
 export async function readProjectFiles(root: string, patterns: string[]): Promise<TextFile[]> {
   const paths = await readProjectFilePaths(root, patterns)
@@ -7,7 +8,9 @@ export async function readProjectFiles(root: string, patterns: string[]): Promis
 }
 
 export async function readProjectFilePaths(root: string, patterns: string[]): Promise<string[]> {
-  const paths = await Promise.all(patterns.map((pattern) => readGlobPaths(root, cleanPattern(pattern), isProjectFile)))
+  const paths = await Promise.all(
+    patterns.map((pattern) => readGlobPaths(root, scanPattern(cleanPattern(pattern)), (path) => isProjectFile(path) && pathMatches(`/${path}`, pattern))),
+  )
 
   return uniquePaths(paths.flat().map((path) => `/${path}`))
 }
@@ -39,6 +42,13 @@ function isProjectFile(path: string): boolean {
 
 function cleanPattern(pattern: string): string {
   return pattern.replace(/^\//, "")
+}
+
+function scanPattern(pattern: string): string {
+  return pattern
+    .split("/")
+    .map((segment) => (/^!\(.+\)$/.test(segment) ? "**" : segment))
+    .join("/")
 }
 
 function uniquePaths(paths: string[]): string[] {

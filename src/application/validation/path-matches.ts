@@ -1,5 +1,8 @@
 export function pathMatches(path: string, glob: string): boolean {
-  return matchSegments(segments(path), segments(glob))
+  const pathSegments = segments(path)
+  const globSegments = segments(glob)
+  if (excludedByNegativeGlobstarSegment(pathSegments, globSegments)) return false
+  return matchSegments(pathSegments, globSegments)
 }
 
 function matchSegments(path: string[], glob: string[]): boolean {
@@ -14,7 +17,23 @@ function matchGlobstar(path: string[], glob: string[]): boolean {
 }
 
 function segmentMatches(path: string, glob: string): boolean {
+  const negative = negativeSegmentPatterns(glob)
+  if (negative) return !negative.some((pattern) => segmentMatches(path, pattern))
+
   return new RegExp(`^${glob.split("*").map(escapeRegex).join(".*")}$`).test(path)
+}
+
+function excludedByNegativeGlobstarSegment(path: string[], glob: string[]): boolean {
+  return glob.some((segment, index) => {
+    const negative = negativeSegmentPatterns(segment)
+    if (!negative || (glob[index - 1] !== "**" && glob[index + 1] !== "**")) return false
+    return path.some((pathSegment) => negative.some((pattern) => segmentMatches(pathSegment, pattern)))
+  })
+}
+
+function negativeSegmentPatterns(glob: string): string[] | null {
+  const match = /^!\((.+)\)$/.exec(glob)
+  return match?.[1] ? match[1].split("|") : null
 }
 
 function segments(path: string): string[] {

@@ -15,9 +15,22 @@ export function matchNodes(nodes: TemplateNode[], lines: string[], start: number
 }
 
 function matchNode(node: TemplateNode, lines: string[], position: number, context: MatchContext): number[] {
-  if (node.kind === "optional") return [position, ...matchNodes(node.nodes, lines, position, context)]
+  if (node.kind === "optional") return matchOptional(node.nodes, lines, position, context)
   if (node.kind === "alternation") return node.choices.flatMap((choice) => matchNodes(choice, lines, position, context))
   return matchLine(node, lines, position, context)
+}
+
+function matchOptional(nodes: TemplateNode[], lines: string[], position: number, context: MatchContext): number[] {
+  const endings = matchNodes(nodes, lines, position, context).filter((ending) => ending > position)
+  if (nodeStartsAt(nodes[0], lines, position, context)) return endings
+  return [position, ...endings]
+}
+
+function nodeStartsAt(node: TemplateNode | undefined, lines: string[], position: number, context: MatchContext): boolean {
+  if (!node) return false
+  if (node.kind === "optional") return nodeStartsAt(node.nodes[0], lines, position, context)
+  if (node.kind === "alternation") return node.choices.some((choice) => matchNodes(choice, lines, position, context).some((ending) => ending > position))
+  return matchLine(node, lines, position, context).some((ending) => ending > position)
 }
 
 function matchLine(node: LineNode, lines: string[], position: number, context: MatchContext): number[] {

@@ -63,8 +63,11 @@ function diagnoseNodes(template: TemplateDocument, nodes: TemplateNode[], lines:
     positions = next
   }
 
-  const extraPosition = positions.filter((position) => position < lines.length).sort((a, b) => a - b)[0]
+  const extraPosition = positions.filter((position) => position < lines.length).sort((a, b) => b - a)[0]
   if (extraPosition !== undefined) {
+    const firstNode = nodes[0]
+    if (extraPosition === start && firstNode) return describeNodeFailure(template, firstNode, lines, extraPosition, context)
+
     return diagnostic({
       template: template.path,
       sourceLine: extraPosition + 1,

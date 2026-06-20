@@ -49,4 +49,28 @@ describe("matchTemplate", () => {
       `Actual: domain = { ↵ containerSize: useContainerSize(), ↵ now: useNow(), ↵ scaleMs: useScaleMs(), ↵ situation: useSituation(), ↵ ${highlightDiagnostic("timelineData: {} as Record<string, any>,")}`,
     )
   })
+
+  test("does not diagnose skipped optional content as extra source", () => {
+    const template = parseTemplate("---\npaths: /checked/*.svelte\n---\n~<style>\n</style>~", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const result = matchTemplate(template.value, { filePath: "/checked/file.svelte", content: "<script>" })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).not.toContain("Expected: end of template")
+    expect(result.errors[0]).toContain("Expected: <style> ↵ </style>")
+    expect(result.sourceLine).toBe(1)
+  })
+
+  test("does not skip an optional block after the source starts it", () => {
+    const template = parseTemplate("---\npaths: /checked/*.svelte\n---\n~<script>\nconst module = *Module.getInstance(*)\n</script>~", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const result = matchTemplate(template.value, { filePath: "/checked/file.svelte", content: "<script>\n</script>" })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).not.toContain("Expected: end of template")
+    expect(result.errors[0]).toContain("Expected: const module = *Module.getInstance(*)")
+    expect(result.sourceLine).toBe(2)
+  })
 })
