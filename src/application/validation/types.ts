@@ -25,6 +25,7 @@ export type ValidationReport = {
 
 export type FileValidation = {
   path: string
+  sourceLine?: number
   valid: boolean
   templates: string[]
   errors: string[]

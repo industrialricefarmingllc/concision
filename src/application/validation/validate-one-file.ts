@@ -11,6 +11,7 @@ export function validateOneFile(file: TextFile, templates: TemplateDocument[], v
 
   return {
     path: file.path,
+    sourceLine: results.find((result) => result.sourceLine !== undefined)?.sourceLine,
     valid,
     templates: templates.map((template) => template.path),
     errors: valid ? [] : results.flatMap((result) => result.errors),

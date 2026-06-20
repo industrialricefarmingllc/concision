@@ -1,4 +1,5 @@
 import type { ValidationReport } from "../../application/validation/types"
+import { diagnosticHighlightEnd, diagnosticHighlightStart } from "../../domain/matching/diagnostic-highlight"
 
 const ansi = {
   red: "\u001b[31m",
@@ -20,7 +21,7 @@ export function renderReportWithOptions(report: ValidationReport, options: { sho
   const lines = [report.valid ? "Concision check passed" : "Concision check failed"]
 
   if (report.errors.length > 0) {
-    lines.push("", "Template errors", ...report.errors.map((error) => styleMultiline(error, "  ", "gray")))
+    lines.push("", "Template errors", ...report.errors.map((error) => styleWarning(error)))
   }
 
   if (failed.length > 0) {
@@ -35,7 +36,7 @@ export function renderReportWithOptions(report: ValidationReport, options: { sho
   }
 
   if (report.warnings.length > 0) {
-    lines.push("", `Warnings (${report.warnings.length})`, ...report.warnings.map((warning) => styleMultiline(warning, "  ", "gray")))
+    lines.push("", `Warnings (${report.warnings.length})`, ...report.warnings.map((warning) => styleWarning(warning)))
   }
 
   lines.push("", `Summary: ${formatSummaryCount(passed, "passed", "green")}, ${formatSummaryCount(failed.length, "failed", "red")}, ${report.files.length} checked`)
@@ -44,18 +45,62 @@ export function renderReportWithOptions(report: ValidationReport, options: { sho
 }
 
 function renderFailedFile(file: ValidationReport["files"][number]): string[] {
-  return [`  ${color(file.path, "red")}`, ...file.errors.map((error) => styleMultiline(error, "    ", "gray"))]
+  const path = file.sourceLine ? `${file.path}:${file.sourceLine}` : file.path
+  return [`  ${color(path, "red")}`, ...file.errors.map((error) => styleDiagnostic(error, "gray", true))]
 }
 
-function styleMultiline(value: string, prefix: string, colorName: keyof Omit<typeof ansi, "reset">): string {
+function styleWarning(value: string): string {
   return value
     .split("\n")
-    .map((line) => `${prefix}${color(line, colorName)}`)
+    .map((line) => `  ${color(line, "gray")}`)
     .join("\n")
+}
+
+function styleDiagnostic(value: string, baseColor: keyof Omit<typeof ansi, "reset">, alignLabels: boolean): string {
+  return value
+    .split("\n")
+    .map((line, index) => {
+      if (!alignLabels) return styleDiagnosticLine(line, baseColor)
+
+      if (index === 0 && line.startsWith("Template: ")) return `    ${color(padLabel("Template"), "gray")}${styleDiagnosticLine(line.slice("Template: ".length), baseColor)}`
+      if (index === 1 && line.startsWith("Expected: ")) return `    ${color(padLabel("Expected"), "gray")}${styleDiagnosticLine(line.slice("Expected: ".length), undefined)}`
+      if (index === 2 && line.startsWith("Actual: ")) return `    ${color(padLabel("Actual"), "gray")}${styleDiagnosticLine(line.slice("Actual: ".length), baseColor)}`
+
+      return `    ${" ".repeat(11)}${styleDiagnosticLine(line, baseColor)}`
+    })
+    .join("\n")
+}
+
+function styleDiagnosticLine(value: string, baseColor?: keyof Omit<typeof ansi, "reset">): string {
+  const parts = value.split(new RegExp(`(${escapeRegex(diagnosticHighlightStart)}|${escapeRegex(diagnosticHighlightEnd)})`))
+  let highlighted = false
+  let output = baseColor ? ansi[baseColor] : ""
+
+  for (const part of parts) {
+    if (part === diagnosticHighlightStart) {
+      highlighted = true
+      output += ansi.reset
+    } else if (part === diagnosticHighlightEnd) {
+      highlighted = false
+      output += baseColor ? ansi[baseColor] : ansi.reset
+    } else {
+      output += part
+    }
+  }
+
+  return `${output}${baseColor ? ansi.reset : ""}`
 }
 
 function color(value: string, name: keyof Omit<typeof ansi, "reset">): string {
   return `${ansi[name]}${value}${ansi.reset}`
+}
+
+function padLabel(label: string): string {
+  return `${label}:`.padEnd(11, " ")
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function formatSummaryCount(count: number, label: string, colorName: keyof Omit<typeof ansi, "reset">): string {
