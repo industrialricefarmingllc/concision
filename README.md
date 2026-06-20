@@ -33,7 +33,7 @@ export function useTransforms() {
 ```
 
 We would create an abstract version without implementation details at `.spec/templates/component-module.ts`, leaving only the general shape of our code.
-```
+```yaml
 ---
 paths: /**/use*.svelte.ts
 ---
@@ -58,6 +58,7 @@ export function use*(*) {
 - Allows optional (~) import lines, as many as wanted (\*\*)
 - Enforces the use* signature (e.g. usePosition)
 - Ensures $state() is created
+- Optionally allows three more variables to be used before forcing a refactor (~**3)
 - And ensures it's exported via a special accessor function
 <br>
 No matter which model I used, it kept breaking this form in a hundred different ways. No more though :]
