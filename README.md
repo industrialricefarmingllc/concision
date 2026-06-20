@@ -10,21 +10,57 @@ That is because until now, there was no way to enforce a stable format the agent
 Concision solves this by acting as a linter for abstract code templates. You define the template, AI gets it wrong, concision will tell the AI why it's wrong and how it can be solved. **Nothing passes until it matches your specifications.**
 
 ## Example
-```
----
-paths: **/*.ts
----
-~import**
+Say you have useFunctions with this general shape
 
-export function *(*) { | export async function *(*) {
-  **5
+```ts
+import { state } from "@mx/svelte"
+import { latLngToVec3 } from "../domain/latLngToVec3"
+import { defaultAltitude, defaultLatitude, defaultLongitude } from "../constants"
+
+export function useTransforms() {
+  let position = $state(latLngToVec3(defaultLatitude, defaultLongitude, defaultAltitude))
+
+  return state({
+    get value() {
+      return position
+    },
+    set value(v) {
+      position = v
+    },
+    setPositionFromWorldLocation: (latitude, longitude, altitude) => (position = latLngToVec3(latitude, longitude, altitude)),
+  })
 }
 ```
-- Covers all .ts files
+
+We would create an abstract version without implementation details at `.spec/templates/component-module.ts`, leaving only the general shape of our code.
+```
+---
+paths: /**/use*.svelte.ts
+---
+~import **
+~
+export function use*(*) {
+  let * = $state(*)
+  ~**3
+
+  return state({
+    get value() {
+      return *
+    },
+    set value(v) {
+      * = v
+    },
+    ~**
+  })
+}
+```
+- Covers all use*.svelte.ts files
 - Allows optional (~) import lines, as many as wanted (\*\*)
-- Requires the export of a regular OR (|) async function
-- Allows any function name (\*) and any parameters, if any (\*)
-- Allows any number of lines with a maximum of 5 variables (**5) to reign in cognitive load
+- Enforces the use* signature (e.g. usePosition)
+- Ensures $state() is created
+- And ensures it's exported via a special accessor function
+<br>
+No matter which model I used, it kept breaking this form in a hundred different ways. No more though :]
 
 ## Syntax
 `~` marks this line optional (wrap a code block for multi-line optionality)
