@@ -563,8 +563,66 @@ function escapeRegex(value: string): string {
 }
 
 function constraintMatches(pattern: string, value: string): boolean {
-  if (!pattern.includes("*")) return value.includes(pattern)
-  return new RegExp(escapeRegex(pattern).replace(/\\\*/g, "[\\s\\S]*")).test(value)
+  if (!pattern.includes("*") && !pattern.includes("|[")) return value.includes(pattern)
+  return new RegExp(constraintToRegex(pattern)).test(value)
+}
+
+function constraintToRegex(pattern: string): string {
+  let result = ""
+  let i = 0
+  const len = pattern.length
+  while (i < len) {
+    if (pattern[i] === "|" && pattern[i + 1] === "[" && (i === 0 || pattern[i - 1] !== "\\")) {
+      const { alternatives, end } = parseAlternation(pattern, i)
+      const escaped = alternatives.map((alt) => escapeRegex(alt.trim()).replace(/\\\*/g, "[\\s\\S]*"))
+      result += `(?:${escaped.join("|")})`
+      i = end
+    } else if (pattern[i] === "*") {
+      result += "[\\s\\S]*"
+      i++
+    } else if (pattern[i] === "\\" && i + 1 < len) {
+      result += escapeRegex(pattern[i + 1])
+      i += 2
+    } else {
+      result += escapeRegex(pattern[i])
+      i++
+    }
+  }
+  return result
+}
+
+function parseAlternation(pattern: string, start: number): { alternatives: string[]; end: number } {
+  let i = start + 2
+  let depth = 1
+  let current = ""
+  const alternatives: string[] = []
+  while (i < pattern.length && depth > 0) {
+    const ch = pattern[i]
+    if (ch === "\\" && i + 1 < pattern.length) {
+      current += pattern[i] + pattern[i + 1]
+      i += 2
+      continue
+    }
+    if (ch === "[") {
+      depth++
+      current += ch
+    } else if (ch === "]") {
+      depth--
+      if (depth === 0) {
+        if (current.trim()) alternatives.push(current)
+        return { alternatives, end: i + 1 }
+      }
+      current += ch
+    } else if (ch === "<" && pattern[i + 1] === ">" && depth === 1) {
+      if (current.trim()) alternatives.push(current)
+      current = ""
+      i += 2
+    } else {
+      current += ch
+    }
+    i++
+  }
+  return { alternatives: current.trim() ? [current] : [], end: i }
 }
 
 function capturesMatch(expected: string, actual: string): boolean {
