@@ -2,6 +2,8 @@
 
 We design code architectures so that even as our code grows, the mechanism we interact with remains simple. With concision, you can define these mechanisms and know they'll be adhered to 100% of the time. Linting for your code architecture.
 
+> Disclaimer: Due to the experimental nature of this repo, some of its modules are vibecoded. If you're sane, don't trust it yet. However, I will rewrite by hand once the interface is validated.
+
 ## Example
 Say you have useFunctions with this general shape
 
@@ -52,7 +54,7 @@ export function use_1_(*) {
 - Allows optional import lines, as many as wanted (**)
 - Enforces the use_1_ signature (e.g. usePosition), with _1_ capturing the hook name for later use
 - Ensures $state() is created with the same captured name
-- Optionally allows three more variables to be used before forcing a refactor (~[**[3]])
+- Optionally allows three more variables to be used before forcing a refactor (**[3])
 - And ensures it's exported via a special accessor function
 <br>
 **Nothing passes until it matches your specifications.**<br>
