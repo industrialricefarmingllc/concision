@@ -1,4 +1,5 @@
 import type { TemplateDocument } from "../../domain/language/types"
+import type { TemplateError } from "../../infrastructure/parser/parse-template"
 import type { VariableCounter } from "../../domain/language/variable-counter"
 import type { Result } from "../../domain/shared/result"
 
@@ -19,7 +20,7 @@ export type ValidationInput = {
 export type ValidationReport = {
   valid: boolean
   files: FileValidation[]
-  errors: string[]
+  errors: TemplateError[]
   warnings: string[]
 }
 

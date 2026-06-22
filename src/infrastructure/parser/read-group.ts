@@ -8,6 +8,6 @@ export type ReadGroup = {
   next: number
 }
 
-export function readGroup(lines: string[], index: number): ReadGroup {
-  return readOptional(lines, index) ?? readAlternation(lines, index) ?? readLine(lines[index] ?? "", index)
+export function readGroup(lines: string[], index: number, sourceLine: number): ReadGroup {
+  return readOptional(lines, index, sourceLine) ?? readAlternation(lines, index, sourceLine) ?? readLine(lines[index] ?? "", index, sourceLine)
 }

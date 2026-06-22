@@ -1,39 +1,60 @@
 ---
 paths: /test/**/*Module*.ts
 ---
-~import**
+~[import**]
 
 export class *Module extends ComponentModule {
-  domain = {} | domain = {
-    *: use*(*)**
-  }|
+  |[
+    domain = {}
+    <> domain = {
+      *: use*(*)**
+    }
+  ]
 
-  application = {} | application = {
-    *: use*(*)**
-  }|
+  |[
+    application = {}
+    <> application = {
+      *: use*(*)**
+    }
+  ]
 
-  infrastructure = {} | infrastructure = {
-    *: use*(*)**
-  }|
+  |[
+    infrastructure = {}
+    <> infrastructure = {
+      *: use*(*)**
+    }
+  ]
 
-  ~constructor(props: Record<string, any>) {
+  ~[constructor(props: Record<string, any>) {
     super(props)
-    ~**3!!props
-  }~
+    ~[**[3]!![props]]
+  }]
 
-  effects() {} | effects() {
-    **
-  }|
+  |[
+    effects() {}
+    <> effects() {
+      **
+    }
+  ]
 
-  onLoad() {} | onLoad() {
-    **
-  }|
+  |[
+    onLoad() {}
+    <> onLoad() {
+      **
+    }
+  ]
 
-  onMount() {} | onMount() {
-    **
-  }|
+  |[
+    onMount() {}
+    <> onMount() {
+      **
+    }
+  ]
 
-  onDestroy() {} | onDestroy() {
-    **
-  }|
+  |[
+    onDestroy() {}
+    <> onDestroy() {
+      **
+    }
+  ]
 }

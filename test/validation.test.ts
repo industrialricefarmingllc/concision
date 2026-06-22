@@ -25,7 +25,7 @@ describe("project validation", () => {
   test("warns when bounded repeats have no language counter", () => {
     const report = validateFiles({
       parseTemplate,
-      templates: [{ path: "/unknown.spec", content: "---\npaths: /sample.txt\n---\n**1" }],
+      templates: [{ path: "/unknown.spec", content: "---\npaths: /sample.txt\n---\n**[1]" }],
       files: [{ path: "/sample.txt", content: "alpha\nbeta" }],
     })
 

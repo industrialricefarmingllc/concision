@@ -2,15 +2,13 @@ import { stat } from "node:fs/promises"
 import { isAbsolute, relative, resolve } from "node:path"
 import { readProjectFilePaths, readTemplateFiles } from "../filesystem/read-project-files"
 import { ParallelValidationController } from "../parallel/parallel-validation-controller"
-import { renderReport } from "./render-report"
+import { renderReport, renderTemplateError } from "./render-report"
 
-type CliCommand =
-  | { kind: "check"; root: string; targets: string[]; showAll: boolean }
-  | { kind: "help"; exitCode: 0 }
-  | { kind: "error"; message: string; exitCode: 1 }
+type CliCommand = { kind: "check"; root: string; targets: string[]; showAll: boolean } | { kind: "help"; exitCode: 0 } | { kind: "error"; message: string; exitCode: 1 }
 
 export async function runCli(args: string[]): Promise<number> {
   const command = parseCliArgs(args)
+
   if (command.kind === "help") {
     console.log(usage())
     return command.exitCode
@@ -24,17 +22,28 @@ export async function runCli(args: string[]): Promise<number> {
   const scope = await checkScope(resolve(command.root), command.targets)
   const validator = new ParallelValidationController()
   const templates = await readTemplateFiles(scope.root)
+
   if (templates.length === 0) {
     console.error("No template tests found. Create them in `.spec/templates/`.")
     return 1
   }
 
   const parsed = await validator.parseTemplates(templates)
+
   let paths: string[]
   try {
-    paths = await checkPaths(scope.root, scope.targets, parsed.templates.flatMap((template) => template.paths))
+    paths = await checkPaths(
+      scope.root,
+      scope.targets,
+      parsed.templates.flatMap((template) => template.paths),
+    )
   } catch (error) {
     console.error(errorMessage(error))
+    return 1
+  }
+
+  if (parsed.errors.length > 0 && paths.length === 0) {
+    console.error(["Concision check failed", "", "Template errors", ...parsed.errors.flatMap(renderTemplateError)].join("\n"))
     return 1
   }
 

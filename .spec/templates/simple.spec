@@ -1,8 +1,11 @@
 ---
 paths: /test/**/Simple*.ts
 ---
-~import**
+~[import **]
 
-export function *(*) { | export async function *(*) {
-  **5
+|[
+  export function *(*) {
+    <> export async function *(*) {
+]
+  **[5]
 }

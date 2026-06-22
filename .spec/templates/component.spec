@@ -1,10 +1,10 @@
 ---
 paths: /test/**/*.svelte
 ---
-~<script>
-  ~import**
+~[<script>
+  ~[import**]
 
   const module = *Module.getInstance(*)
-</script>~
+</script>]
 
-~**10
+~[**]

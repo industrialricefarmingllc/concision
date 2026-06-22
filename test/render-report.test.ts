@@ -67,7 +67,7 @@ describe("CLI report rendering", () => {
     expect(output).toContain("\u001b[31m/fails.ts:3\u001b[0m")
     expect(output).toContain("    \u001b[90mTemplate:  \u001b[0m\u001b[90m/.spec/templates/simple.spec\u001b[0m")
     expect(output).toContain("    \u001b[90mExpected:  \u001b[0mexport function *(*) {")
-    expect(output).toContain("    \u001b[90mActual:    \u001b[0m\u001b[90mconst value = 1\u001b[0m")
+    expect(output).toContain("    \u001b[90mActual:    \u001b[0m\u001b[37mconst value = 1\u001b[0m")
     expect(output).toContain("               \u001b[90mThe rule does not match the source line")
     expect(output).toContain("Summary: \u001b[32m1\u001b[0m passed, \u001b[31m1\u001b[0m failed, 2 checked")
   })
@@ -113,7 +113,7 @@ describe("CLI report rendering", () => {
       { showAll: true },
     )
 
-    expect(output).toContain("    \u001b[90mActual:    \u001b[0m\u001b[90mok ↵ \u001b[0mbad\u001b[90m ↵ later\u001b[0m")
+    expect(output).toContain("    \u001b[90mActual:    \u001b[0m\u001b[37mok ↵ \u001b[31mbad\u001b[37m ↵ later\u001b[0m")
     expect(output).not.toContain("__CONCISION_HIGHLIGHT_START__")
     expect(output).not.toContain("__CONCISION_HIGHLIGHT_END__")
   })

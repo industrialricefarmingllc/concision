@@ -1,13 +1,6 @@
 # concision
 
-Imagine knowing what your LLM returns *before* you prompt it. With concision, you define templates and know they'll be adhered to 100% of the time. Linting for your code architecture.
-
-## Why
-We design code architectures so that even as our code grows, the mechanism we interact with, our architecture, remains a simple tool for us to wield. An invisible layer of abstraction that forms the real machine we're building. Too invisible perhaps, because LLMs just cannot stop drifting to the mean of their training, ignoring conventions left and right.
-
-That is because until now, there was no way to enforce a stable format the agent's output has to adhere to.
-
-Concision solves this by acting as a linter for abstract code templates. You define the template, AI gets it wrong, concision will tell the AI why it's wrong and how it can be solved. **Nothing passes until it matches your specifications.**
+We design code architectures so that even as our code grows, the mechanism we interact with remains simple. With concision, you can define these mechanisms and know they'll be adhered to 100% of the time. Linting for your code architecture.
 
 ## Example
 Say you have useFunctions with this general shape
@@ -37,40 +30,52 @@ We would create an abstract version without implementation details at `.spec/tem
 ---
 paths: /**/use*.svelte.ts
 ---
-~import **
-~
-export function use*(*) {
-  let * = $state(*)
-  ~**3
+**[import*]
+
+export function use_1_(*) {
+  let _1_ = $state(*)
+
+  **[3]
 
   return state({
     get value() {
-      return *
+      return _1_
     },
     set value(v) {
-      * = v
+      _1_ = v
     },
-    ~**
+    **
   })
 }
 ```
 - Covers all use*.svelte.ts files
-- Allows optional (~) import lines, as many as wanted (\*\*)
-- Enforces the use* signature (e.g. usePosition)
-- Ensures $state() is created
-- Optionally allows three more variables to be used before forcing a refactor (~**3)
+- Allows optional import lines, as many as wanted (**)
+- Enforces the use_1_ signature (e.g. usePosition), with _1_ capturing the hook name for later use
+- Ensures $state() is created with the same captured name
+- Optionally allows three more variables to be used before forcing a refactor (~[**[3]])
 - And ensures it's exported via a special accessor function
 <br>
-No matter which model I used, it kept breaking this form in a hundred different ways. No more though :]
+**Nothing passes until it matches your specifications.**<br>
+No matter which LLM I used, it kept breaking this form in a hundred different ways. No more though :]
 
 ## Syntax
-`~` marks this line optional (wrap a code block for multi-line optionality)
 
-`*` allow any text until the next concrete symbol
-
-`**` allow any number of lines with that line's rules (end of line only)<br>
-
-TODO: Add remaining (it's 37C rn i'm dying)
+| Operator | Description |
+| --- | --- |
+| `~` | Optional empty line |
+| `~[...]` | Optional block |
+| `*` | Wildcard - matches any text until the next concrete symbol |
+| `**` | Unbounded repeat - any number of matching lines (any content) |
+| `**[content]` | Unbounded repeat - any number of lines matching the given format |
+| `**[N]` | Bounded repeat - up to N lines (counts TS/Svelte variables) |
+| `_N_` | Capture group - reuse the same text with case-variant matching (kebab, snake, camel, Pascal) |
+| `\*` | Literal asterisk |
+| `!` | Exclude - line must NOT match (definitive end) |
+| `![text]` | Exclude - line must NOT contain text (definitive end) |
+| `!!` | Require - line MUST match (definitive end) |
+| `!![text]` | Require - line MUST contain text (definitive end) |
+| `*![text]` / `*!![text]` | Wildcard-scoped exclude/require |
+| `\|[A <> B]` | Alternation - match one of the listed options |
 
 ## Install
 

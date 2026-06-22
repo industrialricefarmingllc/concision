@@ -1,9 +1,10 @@
 import type { TemplateDocument } from "../../domain/language/types"
+import type { TemplateError } from "../../infrastructure/parser/parse-template"
 import type { ParseTemplate, TextFile } from "./types"
 
 export type ParsedTemplates = {
   templates: TemplateDocument[]
-  errors: string[]
+  errors: TemplateError[]
 }
 
 export function parseTemplates(files: TextFile[], parseTemplate: ParseTemplate): ParsedTemplates {
