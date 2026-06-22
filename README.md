@@ -52,12 +52,12 @@ export function use_1_(*) {
 ```
 - Covers all use*.svelte.ts files
 - Allows optional import lines, as many as wanted (**)
-- Enforces the use_1_ signature (e.g. usePosition), with _1_ capturing the hook name for later use
+- Enforces a `use_1_` signature (e.g. `usePosition`), with \_1\_ capturing the hook name for later use
 - Ensures $state() is created with the same captured name
 - Optionally allows three more variables to be used before forcing a refactor (**[3])
 - And ensures it's exported via a special accessor function
-<br>
-**Nothing passes until it matches your specifications.**<br>
+
+**Nothing passes until it matches your specifications.** <br>
 No matter which LLM I used, it kept breaking this form in a hundred different ways. No more though :]
 
 ## Syntax
