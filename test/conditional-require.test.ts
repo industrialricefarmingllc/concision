@@ -80,16 +80,16 @@ describe("bare !! at end of pattern (nothing after !! )", () => {
 })
 
 describe("nested brackets in wildcard-scoped require (*!![...])", () => {
-  const userTemplate = `export function use_1_(*!![*Module["|["domain" <> "application" <> "infrastructure"]"]]) {`
+  const userTemplate = `export function use_1_(*!![*Module["|[domain <> application <> infrastructure]"]]) {`
 
   test("accepts empty wildcard (user's exact scenario)", () => {
     const pattern = parseLinePattern(userTemplate, 1)
     expect(lineMatches(pattern, "export function useIsOpen() {")).toBe(true)
   })
 
-  test("accepts wildcard content matching require with nesting", () => {
+  test("accepts wildcard content matching alternation in constraint", () => {
     const pattern = parseLinePattern(userTemplate, 1)
-    expect(lineMatches(pattern, `export function useFoo([*Module["|["domain" <> "application" <> "infrastructure"]"]]) {`)).toBe(true)
+    expect(lineMatches(pattern, `export function useFoo(name: TimelineFutureNodeModule["domain"]) {`)).toBe(true)
   })
 
   test("rejects wildcard content without matching require", () => {
@@ -105,7 +105,20 @@ describe("nested brackets in wildcard-scoped require (*!![...])", () => {
 
     expect(wildcard.constraints).toHaveLength(1)
     expect(wildcard.constraints[0].kind).toBe("require")
-    expect(wildcard.constraints[0].value).toBe(`*Module["|["domain" <> "application" <> "infrastructure"]"]`)
+    expect(wildcard.constraints[0].value).toBe(`*Module["|[domain <> application <> infrastructure]"]`)
+  })
+
+  test("accepts real user scenario with multiple alternation matches", () => {
+    const template = `export function use_1_(*!![*Module["|[domain <> application <> infrastructure <> props]"]]) {`
+    const pattern = parseLinePattern(template, 1)
+    const actual = `export function useActivate(domain: TimelineFutureNodeModule["domain"], props: TimelineFutureNodeModule["props"]) {`
+    expect(lineMatches(pattern, actual)).toBe(true)
+  })
+
+  test("rejects when wildcard content contains none of the alternatives", () => {
+    const template = `export function use_1_(*!![*Module["|[domain <> application <> infrastructure <> props]"]]) {`
+    const pattern = parseLinePattern(template, 1)
+    expect(lineMatches(pattern, `export function useBad(x: TimelineFutureNodeModule["invalid"]) {`)).toBe(false)
   })
 })
 
@@ -132,6 +145,19 @@ describe("nested brackets in line-level require/exclude", () => {
     const pattern = parseLinePattern(`![key["nested"] = value]`, 1)
     expect(lineMatches(pattern, "ok")).toBe(true)
     expect(lineMatches(pattern, `has key["nested"] = value inside`)).toBe(false)
+  })
+})
+
+describe("line-level !![...] with alternation", () => {
+  test("matches one of the alternatives", () => {
+    const pattern = parseLinePattern(`!![type = |["domain" <> "application"]]`, 1)
+    expect(lineMatches(pattern, `x type = "domain" is valid`)).toBe(true)
+    expect(lineMatches(pattern, `x type = "application" is valid`)).toBe(true)
+  })
+
+  test("rejects none of the alternatives", () => {
+    const pattern = parseLinePattern(`!![type = |["domain" <> "application"]]`, 1)
+    expect(lineMatches(pattern, `x type = "other" is valid`)).toBe(false)
   })
 })
 
