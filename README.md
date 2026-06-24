@@ -2,7 +2,7 @@
 
 We design code architectures so that even as our code grows, the mechanism we interact with remains simple. With concision, you can define these mechanisms and know they'll be adhered to 100% of the time. Linting for your code architecture.
 
-> Disclaimer: Due to the experimental nature of this repo, some of its modules are vibecoded. If you're sane, don't trust it yet. However, I will rewrite by hand once the interface is validated.
+> Disclaimer: Due to the experimental nature of this repo, a select few pieces are vibecoded for prototyping purposes. However, all of those will be re-made by hand once the language interface is settled on. I'm not a fan of not knowing what the machine I'm building actually does ^^
 
 ## Example
 Say you have useFunctions with this general shape
