@@ -11,6 +11,7 @@ Part
   = Repeat
   / Capture
   / Wildcard
+  / Optional
   / Literal
 
 Repeat
@@ -18,17 +19,7 @@ Repeat
 
 RepeatParams
   = "[" max:$[0-9]+ "]" { return { max: Number(max), content: null } }
-  / "[" content:RepeatContent "]" { return { max: null, content } }
-
-RepeatContent
-  = chars:RepeatContentChar+ { return chars.join("") }
-
-RepeatContentChar
-  = RepeatContentNested
-  / !"]" value:. { return value }
-
-RepeatContentNested
-  = "[" chars:RepeatContentChar* "]" { return "[" + chars.join("") + "]" }
+  / "[" content:BracketContent "]" { return { max: null, content } }
 
 Wildcard
   = "*" constraints:WildcardConstraint* { return { kind: "wildcard", constraints, params: { parts: [] } } }
@@ -38,23 +29,15 @@ WildcardConstraint
   / WildcardExclude
 
 WildcardRequire
-  = "!!" "[" value:WildcardConstraintParamValue "]" { return { kind: "require", value: value.trim() } }
+  = "!!" "[" value:BracketContent "]" { return { kind: "require", value: value.trim() } }
   / "!!" { return { kind: "requireRest", value: "" } }
 
 WildcardExclude
-  = "!" "[" value:WildcardConstraintParamValue "]" { return { kind: "exclude", value: value.trim() } }
+  = "!" "[" value:BracketContent "]" { return { kind: "exclude", value: value.trim() } }
   / "!" { return { kind: "exclude", value: "*" } }
 
-WildcardConstraintParamValue
-  = value:(Escaped / WildcardConstraintChar)+ { return value.join("") }
-
-WildcardConstraintChar
-  = WildcardConstraintNested
-  / Escaped
-  / !("]" / "\\") value:. { return value }
-
-WildcardConstraintNested
-  = "[" chars:WildcardConstraintChar* "]" { return "[" + chars.join("") + "]" }
+Optional
+  = "~[" content:BracketContent "]" { return { kind: "optional", content: content } }
 
 Capture
   = "_" id:$[0-9]+ "_" { return { kind: "capture", id: Number(id), params: { parts: [] } } }
@@ -64,35 +47,29 @@ Constraint
   / Exclude
 
 Require
-  = "!!" "[" value:ConstraintParamValue "]" { return { kind: "require", value: value.trim() } }
+  = "!!" "[" value:BracketContent "]" { return { kind: "require", value: value.trim() } }
   / "!!" { return { kind: "require", value: "*" } }
 
 Exclude
-  = "!" "[" value:ConstraintParamValue "]" { return { kind: "exclude", value: value.trim() } }
+  = "!" "[" value:BracketContent "]" { return { kind: "exclude", value: value.trim() } }
   / "!" { return { kind: "exclude", value: "*" } }
-
-ConstraintParamValue
-  = value:(Escaped / ConstraintChar)+ { return value.join("") }
-
-ConstraintChar
-  = ConstraintNested
-  / Escaped
-  / !("]" / "\\") value:. { return value }
-
-ConstraintNested
-  = "[" chars:ConstraintChar* "]" { return "[" + chars.join("") + "]" }
 
 Literal
   = value:(Escaped / PlainLiteral)+ { return { kind: "literal", value: value.join(""), params: { parts: [] } } }
 
-PlainConstraint
-  = !"!" value:. { return value }
-
-PlainWildcardConstraint
-  = !("!" / "\\") value:. { return value }
-
 PlainLiteral
-  = !("*" / "!" / ("_" [0-9] [0-9]* "_") / "\\") value:. { return value }
+  = !(("*" / "!" / ("_" [0-9] [0-9]* "_") / "\\" / "~[")  ) value:. { return value }
+
+BracketContent
+  = chars:BracketChar+ { return chars.join("") }
+
+BracketChar
+  = BracketNested
+  / Escaped
+  / !("]" / "\\") value:. { return value }
+
+BracketNested
+  = "[" chars:BracketChar* "]" { return "[" + chars.join("") + "]" }
 
 Escaped
   = "\\" value:. { return value }

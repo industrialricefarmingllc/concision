@@ -385,6 +385,50 @@ describe("matchTemplate", () => {
     expect(bad.valid).toBe(false)
     expect(bad.errors[0]).toContain("The rule requires text `required`")
   })
+
+  test("treats ~[...] mid-line as an inline optional", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst module = *Module.getInstance(~[props])", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const module = FooModule.getInstance(props)" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const module = FooModule.getInstance()" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const module = FooModule.getInstance(extra)" }).valid).toBe(false)
+  })
+
+  test("formats mid-line optional in diagnostic messages", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst x = *foo(~[bar])", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const result = matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const x = bad" })
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toContain("~[bar]")
+  })
+
+  test("supports capture inside inline optional", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst module = *Module.getInstance(~[~[_1_]])", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const module = FooModule.getInstance(props)" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const module = FooModule.getInstance()" }).valid).toBe(true)
+  })
+
+  test("supports wildcard inside inline optional", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst x = *foo(~[*])", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const x = foo(bar)" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "const x = foo()" }).valid).toBe(true)
+  })
+
+  test("supports nested inline optionals", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\n*foo(~[bar~[baz]])", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo(barbaz)" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo(bar)" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo()" }).valid).toBe(true)
+    expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo(baz)" }).valid).toBe(false)
+  })
 })
 
 function hookTemplate(): string {

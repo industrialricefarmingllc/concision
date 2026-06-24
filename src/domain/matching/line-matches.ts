@@ -260,8 +260,8 @@ type ScopedWildcardMatch = {
 }
 
 function matchTextWithScopedWildcard(parts: PatternPart[], text: string, captures: Captures, options: { includeLineConstraints?: boolean } = {}): ScopedWildcardMatch[] {
-  const groups: Array<{ kind: "capture"; id: string } | { kind: "wildcard"; constraints: Constraint[] }> = []
-  const source = parts.map((part) => scopedWildcardRegexPart(part, captures, groups)).join("")
+  const groups: RegexGroup[] = []
+  const source = parts.map((part) => partToRegex(part, captures, groups, { scoped: true })).join("")
   const match = new RegExp(`^${source}$`).exec(text)
   if (!match) return []
 
@@ -272,7 +272,10 @@ function matchTextWithScopedWildcard(parts: PatternPart[], text: string, capture
   for (const item of groups) {
     const value = match[group]
     group += 1
-    if (value === undefined) return []
+    if (value === undefined) {
+      if (item.optional) continue
+      return []
+    }
 
     if (item.kind === "wildcard") {
       wildcards.push({ value: value.trim(), constraints: options.includeLineConstraints === false ? item.constraints : item.constraints })
@@ -285,24 +288,6 @@ function matchTextWithScopedWildcard(parts: PatternPart[], text: string, capture
   }
 
   return [{ captures: nextCaptures, wildcards }]
-}
-
-function scopedWildcardRegexPart(part: PatternPart, captures: Captures, groups: Array<{ kind: "capture"; id: string } | { kind: "wildcard"; constraints: Constraint[] }>): string {
-  if (part.kind === "wildcard") {
-    groups.push({ kind: "wildcard", constraints: part.constraints })
-    return "(.*?)"
-  }
-
-  if (part.kind === "capture") {
-    const key = String(part.id)
-    const captured = captures[key]
-    if (captured !== undefined) return `\\s*${caseVariantRegex(captured)}\\s*`
-
-    groups.push({ kind: "capture", id: key })
-    return "\\s*(.+?)\\s*"
-  }
-
-  return escapeRegex(part.value.trim())
 }
 
 function constraintMismatch(pattern: LinePattern, lines: string[], position: number, captures: Captures): LineMismatch | null {
@@ -373,17 +358,23 @@ type CaptureMismatch = {
 }
 
 function findCaptureMismatch(parts: RegexPart[], text: string, captures: Captures): CaptureMismatch | null {
-  const regex = captureProbeRegex(parts)
-  const match = regex.value.exec(text)
+  const captureIds: string[] = []
+  const groups: RegexGroup[] = []
+  const source = parts.map((part) => partToRegex(part, captures, groups, { probe: true, captureIds })).join("")
+  const regex = new RegExp(`^${source}$`)
+  const match = regex.exec(text)
   if (!match) return null
 
   const nextCaptures = { ...captures }
   let group = 1
 
-  for (const id of regex.captureIds) {
+  for (const id of captureIds) {
     const value = match[group]
     group += 1
-    if (value === undefined) return null
+    if (value === undefined) {
+      if (groups[group - 2]?.optional) continue
+      return null
+    }
 
     const captured = nextCaptures[id]
     if (captured !== undefined && !capturesMatch(captured, value)) return { id, expected: captured, actual: value }
@@ -393,25 +384,8 @@ function findCaptureMismatch(parts: RegexPart[], text: string, captures: Capture
   return null
 }
 
-function captureProbeRegex(parts: RegexPart[]): { value: RegExp; captureIds: string[] } {
-  const captureIds: string[] = []
-  const source = parts.map((part) => captureProbeRegexPart(part, captureIds)).join("")
-  return { value: new RegExp(`^${source}$`), captureIds }
-}
-
-function captureProbeRegexPart(part: RegexPart, captureIds: string[]): string {
-  if (part.kind === "multilineWildcard") return "[\\s\\S]*"
-  if (part.kind === "wildcard") return part.constraints.length > 0 ? ".*?" : ".*"
-  if (part.kind === "capture") {
-    captureIds.push(String(part.id))
-    return "\\s*(.+?)\\s*"
-  }
-
-  return escapeRegex(part.value.trim())
-}
-
 function hasCapture(parts: PatternPart[]): boolean {
-  return parts.some((part) => part.kind === "capture")
+  return parts.some((part) => part.kind === "capture" || (part.kind === "optional" && hasCapture(part.parts)))
 }
 
 function inlineRepeatParts(pattern: LinePattern): RegexPart[] {
@@ -448,18 +422,68 @@ function offsetContaining(lines: string[], position: number, span: number, value
   return 0
 }
 
+// Unified regex builder — handles all part kinds including recursive optional parts.
+type RegexPart = PatternPart | { kind: "multilineWildcard" }
+type RegexGroup = { kind: "capture"; id: string; optional?: boolean } | { kind: "wildcard"; constraints: Constraint[]; optional?: boolean }
+
+function partToRegex(
+  part: RegexPart,
+  captures: Captures,
+  groups: RegexGroup[],
+  options: { wildcardConstraints?: boolean; scoped?: boolean; probe?: boolean; captureIds?: string[]; optional?: boolean } = {},
+): string {
+  if (part.kind === "multilineWildcard") return "[\\s\\S]*"
+
+  if (part.kind === "wildcard") {
+    if (options.probe) return part.constraints.length > 0 ? ".*?" : ".*"
+    if (options.wildcardConstraints === false || (!options.scoped && part.constraints.length === 0)) return ".*"
+    groups.push({ kind: "wildcard", constraints: part.constraints, optional: options.optional })
+    return "(.*?)"
+  }
+
+  if (part.kind === "capture") {
+    if (options.probe) {
+      options.captureIds?.push(String(part.id))
+      return "\\s*(.+?)\\s*"
+    }
+    const key = String(part.id)
+    if (options.scoped) {
+      const captured = captures[key]
+      if (captured !== undefined) return `\\s*${caseVariantRegex(captured)}\\s*`
+      groups.push({ kind: "capture", id: key, optional: options.optional })
+      return "\\s*(.+?)\\s*"
+    }
+    return captureRegex(part.id, captures, groups, options.optional)
+  }
+
+  if (part.kind === "optional") {
+    const innerGroups: RegexGroup[] = []
+    const inner = part.parts.map((p) => partToRegex(p, captures, innerGroups, { ...options, optional: true })).join("")
+    for (const g of innerGroups) groups.push(g)
+    return "(?:" + inner + ")?"
+  }
+
+  // literal
+  return escapeRegex(part.value.trim())
+}
+
 function matchText(parts: RegexPart[], text: string, captures: Captures, options: { wildcardConstraints?: boolean } = {}): Captures[] {
-  const regex = patternRegex(parts, captures, options)
-  const match = regex.value.exec(text)
+  const groups: RegexGroup[] = []
+  const source = parts.map((part) => partToRegex(part, captures, groups, options)).join("")
+  const regex = new RegExp(`^${source}$`)
+  const match = regex.exec(text)
   if (!match) return []
 
   const nextCaptures = { ...captures }
   let group = 1
 
-  for (const item of regex.groups) {
+  for (const item of groups) {
     const value = match[group]
     group += 1
-    if (value === undefined) return []
+    if (value === undefined) {
+      if (item.optional) continue
+      return []
+    }
 
     if (item.kind === "wildcard") {
       if (!wildcardConstraintsPass(item.constraints, value.trim())) return []
@@ -502,38 +526,19 @@ function wildcardConstraintsPass(constraints: Constraint[], value: string): bool
   })
 }
 
-type RegexPart = PatternPart | { kind: "multilineWildcard" }
-type RegexGroup = { kind: "capture"; id: string } | { kind: "wildcard"; constraints: Constraint[] }
-
-function patternRegex(parts: RegexPart[], captures: Captures, options: { wildcardConstraints?: boolean } = {}): { value: RegExp; groups: RegexGroup[] } {
-  const groups: RegexGroup[] = []
-  const source = parts.map((part) => regexPart(part, captures, groups, options)).join("")
-  return { value: new RegExp(`^${source}$`), groups }
-}
-
-function regexPart(part: RegexPart, captures: Captures, groups: RegexGroup[], options: { wildcardConstraints?: boolean }): string {
-  if (part.kind === "multilineWildcard") return "[\\s\\S]*"
-  if (part.kind === "wildcard") {
-    if (options.wildcardConstraints === false || part.constraints.length === 0) return ".*"
-    groups.push({ kind: "wildcard", constraints: part.constraints })
-    return "(.*?)"
-  }
-  if (part.kind === "capture") return captureRegex(part.id, captures, groups)
-  return escapeRegex(part.value.trim())
-}
-
-function captureRegex(id: number, captures: Captures, groups: RegexGroup[]): string {
+function captureRegex(id: number, captures: Captures, groups: RegexGroup[], optional?: boolean): string {
   const key = String(id)
   const captured = captures[key]
   if (captured !== undefined) return `\\s*${caseVariantRegex(captured)}\\s*`
 
-  groups.push({ kind: "capture", id: key })
+  groups.push({ kind: "capture", id: key, optional })
   return "\\s*(.+?)\\s*"
 }
 
 function formatPart(part: PatternPart): string {
   if (part.kind === "wildcard") return `*${part.constraints.map(formatConstraint).join("")}`
   if (part.kind === "capture") return `_${part.id}_`
+  if (part.kind === "optional") return `~[${part.parts.map(formatPart).join("")}]`
   return part.value.trim()
 }
 
@@ -549,6 +554,7 @@ function formatParts(pattern: LinePattern): string {
 function formatPartPreservingWhitespace(part: PatternPart): string {
   if (part.kind === "wildcard") return `*${part.constraints.map(formatConstraint).join("")}`
   if (part.kind === "capture") return `_${part.id}_`
+  if (part.kind === "optional") return `~[${part.parts.map(formatPartPreservingWhitespace).join("")}]`
   return part.value
 }
 

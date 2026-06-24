@@ -1,5 +1,5 @@
 import { generate } from "peggy"
-import type { LinePattern, WildcardPart } from "../../domain/language/types"
+import type { LinePattern, PatternPart, WildcardPart } from "../../domain/language/types"
 import { lineGrammar } from "../../domain/language/line-grammar"
 
 const parser = generate(lineGrammar)
@@ -12,7 +12,7 @@ export type LineParseError = Error & {
 
 export function parseLinePattern(line: string, sourceLine: number): LinePattern {
   try {
-    return expandBareRequire(expandRepeatContent(parser.parse(line) as LinePattern))
+    return normalizePattern(parser.parse(line) as LinePattern)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const column = extractColumn(error)
@@ -24,14 +24,32 @@ export function parseLinePattern(line: string, sourceLine: number): LinePattern 
   }
 }
 
-function expandRepeatContent(pattern: LinePattern): LinePattern {
-  if (!pattern.repeat?.content || pattern.parts.length > 0) return pattern
-
-  const content = parser.parse(pattern.repeat.content) as LinePattern
-  return {
-    ...content,
-    repeat: { max: pattern.repeat.max, index: content.parts.length, content: null },
+function normalizePattern(pattern: LinePattern): LinePattern {
+  // When the entire line is **[content], expand the content into the line's parts.
+  if (pattern.repeat?.content && pattern.parts.length === 0) {
+    const inner = normalizePattern(parser.parse(pattern.repeat.content) as LinePattern)
+    return expandBareRequire({
+      ...inner,
+      repeat: { max: pattern.repeat.max, index: inner.parts.length, content: null },
+    })
   }
+
+  return expandBareRequire({
+    ...pattern,
+    parts: normalizeParts(pattern.parts),
+    repeat: pattern.repeat ? { ...pattern.repeat, content: pattern.repeat.content } : null,
+  })
+}
+
+function normalizeParts(parts: PatternPart[]): PatternPart[] {
+  return parts.map((part) => {
+    if (part.kind === "optional") {
+      const content = (part as { content: string }).content
+      const inner = parser.parse(content) as LinePattern
+      return { kind: "optional" as const, parts: normalizePattern(inner).parts, params: { parts: [] } }
+    }
+    return part
+  })
 }
 
 function expandBareRequire(pattern: LinePattern): LinePattern {
