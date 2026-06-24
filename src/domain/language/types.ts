@@ -31,7 +31,7 @@ export type LinePattern = {
   params: OperatorParams
 }
 
-export type PatternPart = LiteralPart | WildcardPart | CapturePart
+export type PatternPart = LiteralPart | WildcardPart | CapturePart | OptionalPart
 
 export type LiteralPart = {
   kind: "literal"
@@ -47,6 +47,12 @@ export type WildcardPart = {
 export type CapturePart = {
   kind: "capture"
   id: number
+  params: OperatorParams
+}
+
+export type OptionalPart = {
+  kind: "optional"
+  parts: PatternPart[]
   params: OperatorParams
 }
 

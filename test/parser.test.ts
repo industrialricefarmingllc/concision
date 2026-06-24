@@ -220,4 +220,33 @@ describe("template parser", () => {
     expect(error.sourceLine).toBe(7)
     expect(error.sourceText).toBe("bar ! baz")
   })
+
+  test("parses inline ~[...] as an optional part", () => {
+    const result = parseTemplate("---\npaths: /x\n---\nfoo(~[bar])", "inline.spec")
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    const line = result.value.nodes[0]
+    expect(line?.kind).toBe("line")
+    if (line?.kind !== "line") return
+
+    const optionalPart = line.pattern.parts.find((p) => p.kind === "optional")
+    expect(optionalPart).toBeDefined()
+    if (optionalPart?.kind !== "optional") return
+    expect(optionalPart.parts).toEqual([{ kind: "literal", value: "bar", params: { parts: [] } }])
+  })
+
+  test("parses nested brackets inside inline ~[...]", () => {
+    const result = parseTemplate("---\npaths: /x\n---\nfoo(~[bar[baz]])", "inline.spec")
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+
+    const line = result.value.nodes[0]
+    if (line?.kind !== "line") return
+
+    const optionalPart = line.pattern.parts.find((p) => p.kind === "optional")
+    expect(optionalPart?.kind).toBe("optional")
+    if (optionalPart?.kind !== "optional") return
+    expect(optionalPart.parts).toEqual([{ kind: "literal", value: "bar[baz]", params: { parts: [] } }])
+  })
 })
