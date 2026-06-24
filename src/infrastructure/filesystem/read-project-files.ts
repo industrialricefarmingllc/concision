@@ -1,54 +1,43 @@
+import fg from "fast-glob"
+import type { TemplateDocument } from "../../domain/language/types"
 import type { TextFile } from "../../application/validation/types"
-import { pathMatches } from "../../application/validation/path-matches"
 
-export async function readProjectFiles(root: string, patterns: string[]): Promise<TextFile[]> {
-  const paths = await readProjectFilePaths(root, patterns)
+export async function readProjectFiles(root: string, templates: TemplateDocument[]): Promise<TextFile[]> {
+  const paths = await readProjectFilePaths(root, templates)
 
   return Promise.all(paths.map((path) => readTextFile(root, path.slice(1))))
 }
 
-export async function readProjectFilePaths(root: string, patterns: string[]): Promise<string[]> {
-  const paths = await Promise.all(
-    patterns.map((pattern) => readGlobPaths(root, scanPattern(cleanPattern(pattern)), (path) => isProjectFile(path) && pathMatches(`/${path}`, pattern))),
-  )
+export async function readProjectFilePaths(root: string, templates: TemplateDocument[]): Promise<string[]> {
+  const patterns = templates.flatMap((t) => t.paths.map(cleanPattern))
+  const excludes = templates.flatMap((t) => t.exclude.map(cleanPattern))
 
-  return uniquePaths(paths.flat().map((path) => `/${path}`))
+  const entries = await fg(patterns, {
+    cwd: root,
+    dot: true,
+    onlyFiles: true,
+    ignore: ["node_modules", ".git", ".spec", "lost+found", ...excludes],
+  })
+
+  return uniquePaths(entries.map((path) => `/${path}`))
 }
 
 export async function readTemplateFiles(root: string): Promise<TextFile[]> {
-  return readGlob(root, ".spec/templates/**/*.spec", () => true)
-}
+  const entries = await fg(".spec/templates/**/*.spec", {
+    cwd: root,
+    dot: true,
+    onlyFiles: true,
+  })
 
-async function readGlob(root: string, pattern: string, keep: (path: string) => boolean): Promise<TextFile[]> {
-  const paths = await readGlobPaths(root, pattern, keep)
-
-  return Promise.all(paths.map((path) => readTextFile(root, path)))
-}
-
-async function readGlobPaths(root: string, pattern: string, keep: (path: string) => boolean): Promise<string[]> {
-  const glob = new Bun.Glob(pattern)
-  const paths = await Array.fromAsync(glob.scan({ cwd: root, dot: true, onlyFiles: true }))
-
-  return paths.filter(keep)
+  return Promise.all(entries.map((path) => readTextFile(root, path)))
 }
 
 async function readTextFile(root: string, path: string): Promise<TextFile> {
   return { path: `/${path}`, content: await Bun.file(`${root}/${path}`).text() }
 }
 
-function isProjectFile(path: string): boolean {
-  return !path.startsWith("node_modules/") && !path.startsWith(".git/") && !path.startsWith(".spec/")
-}
-
 function cleanPattern(pattern: string): string {
   return pattern.replace(/^\//, "")
-}
-
-function scanPattern(pattern: string): string {
-  return pattern
-    .split("/")
-    .map((segment) => (/^!\(.+\)$/.test(segment) ? "**" : segment))
-    .join("/")
 }
 
 function uniquePaths(paths: string[]): string[] {

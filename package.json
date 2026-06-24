@@ -27,6 +27,7 @@
     "@types/bun": "latest"
   },
   "dependencies": {
+    "fast-glob": "^3.3.3",
     "peggy": "^5.1.0",
     "typescript": "^5"
   }

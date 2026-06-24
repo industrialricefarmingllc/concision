@@ -1,6 +1,7 @@
 export type TemplateDocument = {
   path: string
   paths: string[]
+  exclude: string[]
   nodes: TemplateNode[]
 }
 

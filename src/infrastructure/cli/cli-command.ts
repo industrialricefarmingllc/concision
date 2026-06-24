@@ -3,6 +3,7 @@ import { isAbsolute, relative, resolve } from "node:path"
 import { readProjectFilePaths, readTemplateFiles } from "../filesystem/read-project-files"
 import { ParallelValidationController } from "../parallel/parallel-validation-controller"
 import { renderReport, renderTemplateError } from "./render-report"
+import type { TemplateDocument } from "../../domain/language/types"
 
 type CliCommand = { kind: "check"; root: string; targets: string[]; showAll: boolean } | { kind: "help"; exitCode: 0 } | { kind: "error"; message: string; exitCode: 1 }
 
@@ -35,7 +36,7 @@ export async function runCli(args: string[]): Promise<number> {
     paths = await checkPaths(
       scope.root,
       scope.targets,
-      parsed.templates.flatMap((template) => template.paths),
+      parsed.templates,
     )
   } catch (error) {
     console.error(errorMessage(error))
@@ -87,9 +88,9 @@ async function checkScope(root: string, targets: string[]): Promise<{ root: stri
   return { root, targets }
 }
 
-async function checkPaths(root: string, targets: string[], patterns: string[]): Promise<string[]> {
+async function checkPaths(root: string, targets: string[], templates: TemplateDocument[]): Promise<string[]> {
   if (targets.length > 0) return Promise.all(targets.map((target) => explicitProjectPath(root, target)))
-  return readProjectFilePaths(root, patterns)
+  return readProjectFilePaths(root, templates)
 }
 
 async function explicitProjectPath(root: string, target: string): Promise<string> {

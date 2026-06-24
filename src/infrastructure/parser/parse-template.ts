@@ -2,7 +2,7 @@ import type { TemplateDocument } from "../../domain/language/types"
 import { failure, success, type Result } from "../../domain/shared/result"
 import type { LineParseError } from "./line-parser"
 import { parseBody } from "./body-parser"
-import { parsePaths } from "./metadata-parser"
+import { parseExclude, parsePaths } from "./metadata-parser"
 import { templateSections } from "./template-sections"
 
 export type TemplateError = {
@@ -19,6 +19,7 @@ export function parseTemplate(text: string, path = "<template>"): Result<Templat
     return success({
       path,
       paths: parsePaths(sections.metadata),
+      exclude: parseExclude(sections.metadata),
       nodes: parseBody(sections.body, sections.bodyStartLine),
     })
   } catch (error) {
