@@ -2,7 +2,7 @@ import type { VariableCounter } from "../language/variable-counter"
 import type { LineNode, TemplateDocument, TemplateNode } from "../language/types"
 import type { Captures } from "./line-matches"
 import { highlightDiagnostic } from "./diagnostic-highlight"
-import { explainLineMismatch, formatLinePattern } from "./line-matches"
+import { explainLineMismatch, formatLinePattern, lineStructureMatches } from "./line-matches"
 import { matchNodes, matchNodesWithState, type MatchContext, type MatchState } from "./match-nodes"
 import { sourceLines } from "./source-lines"
 
@@ -60,6 +60,7 @@ function diagnoseNodes(template: TemplateDocument, nodes: TemplateNode[], lines:
     variableCounter: input.variableCounter,
   }
   let states: MatchState[] = [{ position: start, captures: {} }]
+  let lastBoundedRepeat: { node: LineNode; start: number } | null = null
 
   for (const node of nodes) {
     const state = bestState(states)
@@ -68,13 +69,22 @@ function diagnoseNodes(template: TemplateDocument, nodes: TemplateNode[], lines:
       if (endings.length === 0) return diagnoseNodes(template, node.nodes, lines, input, state.position)
     }
 
+    if (node.kind === "line" && node.pattern.repeat?.max) lastBoundedRepeat = { node, start: state.position }
+
     const next = uniqueStates(states.flatMap((state) => matchNodesWithState([node], lines, [state], context)))
-    if (next.length === 0) return describeNodeFailure(template, node, lines, state, context)
+    if (next.length === 0) {
+      const bound = lastBoundedRepeat ? boundedRepeatFailure(template.path, lastBoundedRepeat.node, lines, lastBoundedRepeat.start, state.position, context, state.captures) : null
+      if (bound) return bound
+      return describeNodeFailure(template, node, lines, state, context)
+    }
     states = next
   }
 
   const extraState = states.filter((state) => state.position < lines.length).sort((a, b) => b.position - a.position)[0]
   if (extraState !== undefined) {
+    const bound = lastBoundedRepeat ? boundedRepeatFailure(template.path, lastBoundedRepeat.node, lines, lastBoundedRepeat.start, extraState.position, context, extraState.captures) : null
+    if (bound) return bound
+
     const firstNode = nodes[0]
     if (extraState.position === start && firstNode) return describeNodeFailure(template, firstNode, lines, extraState, context)
 
@@ -169,6 +179,28 @@ function describeLineFailure(template: TemplateDocument, node: LineNode, lines: 
     actual: formatSourceBlock(lines, position, mismatch.span, mismatch.highlightOffset),
     problem: mismatch.problem,
     fix: mismatch.fix,
+  })
+}
+
+function boundedRepeatFailure(template: string, node: LineNode, lines: string[], repeatStart: number, failPosition: number, context: MatchContext, captures: Captures): Diagnostic | null {
+  const max = node.pattern.repeat?.max
+  if (!max) return null
+
+  const failLine = lines[failPosition] ?? ""
+  if (!lineStructureMatches(node.pattern, failLine, captures)) return null
+
+  const counter = context.variableCounter
+  if (!counter) return null
+  const result = counter({ filePath: context.filePath, content: lines.slice(repeatStart, failPosition + 1).join("\n") })
+  if (!result.supported || result.count <= max) return null
+
+  return diagnostic({
+    template,
+    sourceLine: failPosition + 1,
+    rule: formatLinePattern(node.pattern),
+    actual: formatSourceBlock(lines, failPosition, 1, 0),
+    problem: `The bounded repeat \`${formatLinePattern(node.pattern)}\` allows at most ${max} variable(s), but the source has ${result.count}.`,
+    fix: `Reduce the source to ≤ ${max} variable(s) or raise the bound.`,
   })
 }
 

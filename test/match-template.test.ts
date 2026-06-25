@@ -429,6 +429,43 @@ describe("matchTemplate", () => {
     expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo()" }).valid).toBe(true)
     expect(matchTemplate(template.value, { filePath: "/checked/x.ts", content: "foo(baz)" }).valid).toBe(false)
   })
+
+  test("reports bounded repeat exceeded when source has more variables than allowed", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\n**[1]", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const content = ["const a = 1", "const b = 2", "const c = 3"].join("\n")
+    const result = matchTemplate(template.value, { filePath: "/checked/file.ts", content, variableCounter: countTypeScriptVariables })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toContain("allows at most 1 variable(s)")
+    expect(result.errors[0]).toContain("the source has 2")
+    expect(result.sourceLine).toBe(2)
+  })
+
+  test("reports bounded repeat exceeded when followed by a failing rule", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\n**[2]\nexport const value = 1", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const content = ["const x = 1", "const y = 2", "const z = 3", "export const value = 1"].join("\n")
+    const result = matchTemplate(template.value, { filePath: "/checked/file.ts", content, variableCounter: countTypeScriptVariables })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).toContain("allows at most 2 variable(s)")
+    expect(result.errors[0]).toContain("the source has 3")
+    expect(result.sourceLine).toBe(3)
+  })
+
+  test("does not report bounded repeat exceeded when count is within bound", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\n**[2]\nexport const value = 1", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    const content = ["const x = 1", "export const value = 2"].join("\n")
+    const result = matchTemplate(template.value, { filePath: "/checked/file.ts", content, variableCounter: countTypeScriptVariables })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors[0]).not.toContain("allows at most")
+  })
 })
 
 function hookTemplate(): string {
