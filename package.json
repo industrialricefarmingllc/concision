@@ -1,7 +1,7 @@
 {
   "name": "@nicerice/concision",
   "description": "Linting for your code architecture.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "bin": {
     "concision": "./index.ts"
