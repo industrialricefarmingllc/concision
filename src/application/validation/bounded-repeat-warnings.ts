@@ -18,7 +18,10 @@ export function boundedRepeatWarnings(files: TextFile[], templates: TemplateDocu
 }
 
 function templatesForFile(filePath: string, templates: TemplateDocument[]): TemplateDocument[] {
-  return templates.filter((template) => template.paths.some((glob) => pathMatches(filePath, glob)))
+  return templates.filter((template) => {
+    if (template.exclude.some((glob) => pathMatches(filePath, glob))) return false
+    return template.paths.some((glob) => pathMatches(filePath, glob))
+  })
 }
 
 function extensionLabel(filePath: string): string {

@@ -4,6 +4,7 @@ import { readProjectFilePaths, readTemplateFiles } from "../filesystem/read-proj
 import { ParallelValidationController } from "../parallel/parallel-validation-controller"
 import { renderReport, renderTemplateError } from "./render-report"
 import type { TemplateDocument } from "../../domain/language/types"
+import { pathMatches } from "../../application/validation/path-matches"
 
 type CliCommand = { kind: "check"; root: string; targets: string[]; showAll: boolean } | { kind: "help"; exitCode: 0 } | { kind: "error"; message: string; exitCode: 1 }
 
@@ -89,7 +90,15 @@ async function checkScope(root: string, targets: string[]): Promise<{ root: stri
 }
 
 async function checkPaths(root: string, targets: string[], templates: TemplateDocument[]): Promise<string[]> {
-  if (targets.length > 0) return Promise.all(targets.map((target) => explicitProjectPath(root, target)))
+  if (targets.length > 0) {
+    const paths = await Promise.all(targets.map((target) => explicitProjectPath(root, target)))
+    return paths.filter((path) => {
+      return templates.some((template) => {
+        if (template.exclude.some((glob) => pathMatches(path, glob))) return false
+        return template.paths.some((glob) => pathMatches(path, glob))
+      })
+    })
+  }
   return readProjectFilePaths(root, templates)
 }
 

@@ -120,7 +120,7 @@ function renderSyntaxRef(): string[] {
     ["*", "Wildcard - matches any text to next concrete symbol"],
     ["**", "Unbounded repeat - any number of lines (any content)"],
     ["**[content]", "Unbounded repeat - any number of lines matching format"],
-    ["**[N]", "Bounded repeat - up to N lines (counts TS/Svelte variables)"],
+    ["**[N]", "Bounded repeat - up to N variables"],
     ["_N_", "Capture group - reuse with case-variant matching"],
     ["\\*", "Literal asterisk"],
     ["!", "Exclude - line must NOT match (definitive end)"],

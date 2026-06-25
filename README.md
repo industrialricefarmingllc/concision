@@ -69,7 +69,7 @@ No matter which LLM I used, it kept breaking this form in a hundred different wa
 | `*` | Wildcard - matches any text until the next concrete symbol |
 | `**` | Unbounded repeat - any number of matching lines (any content) |
 | `**[content]` | Unbounded repeat - any number of lines matching the given format |
-| `**[N]` | Bounded repeat - up to N lines (counts TS/Svelte variables) |
+| `**[N]` | Bounded repeat - up to N variables |
 | `_N_` | Capture group - reuse the same text with case-variant matching (kebab, snake, camel, Pascal) |
 | `\*` | Literal asterisk |
 | `!` | Exclude - line must NOT match (definitive end) |
