@@ -138,5 +138,9 @@ function renderSyntaxRef(): string[] {
     lines.push(`  ${color(op.padEnd(colWidth), "cyan")}${desc}`)
   }
 
+  lines.push("")
+  lines.push("  Repeat operators (**, **[N], **[content]) default to being optional if no matches are present")
+  lines.push("  When **[...] or ~[...] appear on their own line, surrounding empty lines become implicitly optional (capped at one).")
+
   return lines
 }
