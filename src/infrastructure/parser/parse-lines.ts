@@ -31,7 +31,7 @@ function absorbOperatorPadding(nodes: TemplateNode[]): TemplateNode[] {
     const node = nodes[i]
     if (!node) { i += 1; continue }
 
-    const isTarget = isTildeMarker(node) || isRepeatOp(node)
+    const isTarget = isTildeMarker(node) || isRepeatOp(node) || isFullLineBlock(node)
     if (!isTarget) { i += 1; continue }
 
     const prevBlank = i > 0 && isBlankLine(nodes[i - 1])
@@ -68,7 +68,12 @@ function isTildeMarker(node: TemplateNode): boolean {
 
 function isRepeatOp(node: TemplateNode): boolean {
   if (node.kind !== "line") return false
-  return (node as LineNode).pattern.repeat !== null && (node as LineNode).pattern.parts.length === 0
+  return (node as LineNode).pattern.repeat !== null
+}
+
+function isFullLineBlock(node: TemplateNode): boolean {
+  if (node.kind !== "optional" || node.nodes.length === 0) return false
+  return !(node.nodes.length === 1 && isBlankLine(node.nodes[0]))
 }
 
 function absorbsAfterBlank(node: TemplateNode): boolean {

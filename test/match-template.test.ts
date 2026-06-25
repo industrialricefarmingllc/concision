@@ -187,17 +187,67 @@ describe("matchTemplate", () => {
     expect(result.valid).toBe(false)
   })
 
-  test("allows blank line before ~[...] to stay required", () => {
-    // ~[...] blocks keep their before-blank as a required structural blank
+  test("allows blank lines around ~[...] to be optional", () => {
     const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst a = 1\n\n~[foo]\n\nconst b = 2", "template.spec")
     if (!template.ok) throw new Error(template.errors.join("\n"))
 
-    // source with a blank line — the required before-blank matches
-    let result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "const a = 1\n\nconst b = 2" })
+    // source with no blank line — both optional blanks omitted
+    let result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "const a = 1\nconst b = 2" })
     expect(result.valid).toBe(true)
 
-    // source without blank line fails — required blank missing
+    // source with one blank before — the optional before-blank is consumed
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "const a = 1\n\nconst b = 2" })
+    expect(result.valid).toBe(true)
+
+    // source with one blank after — the optional after-blank is consumed
     result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "const a = 1\nconst b = 2" })
+    expect(result.valid).toBe(true)
+
+    // source with both blanks — both independently optional, both consumed
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: "const a = 1\n\n\nconst b = 2" })
+    expect(result.valid).toBe(true)
+  })
+
+  test("allows blank line before **[content] to be optional", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst a = 1\n\n**[import *]\nconst z = 2", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    // source with no blank line — optional blank omitted
+    let result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\nimport { x } from "x"\nconst z = 2' })
+    expect(result.valid).toBe(true)
+
+    // source with one blank line — the optional blank is consumed
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\n\nimport { x } from "x"\nconst z = 2' })
+    expect(result.valid).toBe(true)
+  })
+
+  test("allows blank line after **[content] to be optional", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst a = 1\n**[import *]\n\nconst z = 2", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    // source with blank line — the optional blank matches
+    let result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\nimport { x } from "x"\n\nconst z = 2' })
+    expect(result.valid).toBe(true)
+
+    // source without blank line — optional blank omitted
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\nimport { x } from "x"\nconst z = 2' })
+    expect(result.valid).toBe(true)
+  })
+
+  test("caps surrounding blanks at one around **[content]", () => {
+    const template = parseTemplate("---\npaths: /checked/*.ts\n---\nconst a = 1\n\n**[import *]\n\nconst z = 2", "template.spec")
+    if (!template.ok) throw new Error(template.errors.join("\n"))
+
+    // source with no blank line — both optional blanks omitted
+    let result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\nimport { x } from "x"\nconst z = 2' })
+    expect(result.valid).toBe(true)
+
+    // source with one blank line — the optional blank is consumed
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\n\nimport { x } from "x"\nconst z = 2' })
+    expect(result.valid).toBe(true)
+
+    // source with blank line after import — after-blank was spliced out by cap, fails
+    result = matchTemplate(template.value, { filePath: "/checked/file.ts", content: 'const a = 1\nimport { x } from "x"\n\nconst z = 2' })
     expect(result.valid).toBe(false)
   })
 

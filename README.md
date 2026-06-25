@@ -79,6 +79,9 @@ No matter which LLM I used, it kept breaking this form in a hundred different wa
 | `*![text]` / `*!![text]` | Wildcard-scoped exclude/require |
 | `\|[A <> B]` | Alternation - match one of the listed options |
 
+> Repeat operators (`**`, `**[N]`, `**[content]`) default to being optional if no matches are present.
+> When `**[...]` or `~[...]` appear on their own line, surrounding empty lines become implicitly optional (capped at one).
+
 ## Install
 
 Run it with:
