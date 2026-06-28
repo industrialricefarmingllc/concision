@@ -1,6 +1,6 @@
 # concision
 
-We design code architectures so that even as our code grows, the mechanism we interact with remains simple. With concision, you can define these mechanisms and know they'll be adhered to 100% of the time. Linting for your code architecture.
+We design code architectures so that even as our code grows, the mechanism we interact with remains simple. This tool lets you define these mechanisms via templates and they'll be adhered to 100% of the time. Linting for your code architecture.
 
 > Disclaimer: Due to the experimental nature of this repo, a select few pieces are vibecoded for prototyping purposes. However, all of those will be re-made by hand once the language interface is settled on. I'm not a fan of not knowing what the machine I'm building actually does ^^
 
