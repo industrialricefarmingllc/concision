@@ -30,7 +30,7 @@ export function useTransforms() {
 We would create an abstract version without implementation details at `.spec/templates/component-module.ts`, leaving only the general shape of our code.
 ```ts
 ---
-paths: /**/use*.svelte.ts
+paths: **/use*.svelte.ts
 ---
 **[import*]
 
